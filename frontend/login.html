@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WATCH_LOGS — Authenticate</title>
+    <meta name="description" content="Secure login portal for WATCH_LOGS SIEM Dashboard" />
+    <!-- Security headers via meta -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ============================================================
+           LOGIN PAGE — Watch Dogs Cyber Theme
+           ============================================================ */
+        :root {
+            --font-primary: "Space Mono", monospace;
+            --color-black: #000;
+            --color-white: #fff;
+            --color-bg-body: #000;
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #121212;
+            --color-bg-tertiary: #181818;
+            --color-border-primary: #2a2a2a;
+            --color-text-primary: #fff;
+            --color-text-secondary: #fff;
+            --color-text-muted: #fff;
+            --color-critical: #ff3b3b;
+            --color-success: #4caf50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--color-bg-body);
+            font-family: var(--font-primary);
+            color: var(--color-text-primary);
+            letter-spacing: 0.5px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Animated grid background ── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bg-grid::before {
+            content: "";
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridShift 20s linear infinite;
+        }
+        @keyframes gridShift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, 40px); }
+        }
+
+        /* ── Scan line overlay ── */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0,0,0,0) 0px,
+                rgba(0,0,0,0) 1px,
+                rgba(0,0,0,0.08) 1px,
+                rgba(0,0,0,0.08) 2px
+            );
+        }
+
+        /* ── Login container ── */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            width: 420px;
+            max-width: 90vw;
+        }
+
+        /* ── Header branding ── */
+        .login-brand {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-logo {
+            font-size: 34px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--color-text-primary);
+            text-shadow: 0 0 8px rgba(255,255,255,0.3);
+            margin-bottom: 8px;
+            cursor: default;
+        }
+        .login-logo:hover {
+            animation: glitch 0.3s infinite;
+        }
+
+        .login-subtitle {
+            font-size: 16px;
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 #fff, -2px 0 #fff; }
+            20% { text-shadow: -2px 0 #fff, 2px 0 #fff; }
+            40% { text-shadow: 2px 0 #fff, -1px 0 #fff; }
+            60% { text-shadow: -2px 0 #fff, 2px 0 #fff; }
+            80% { text-shadow: 2px 0 #fff, -2px 0 #fff; }
+            100% { text-shadow: -2px 0 #fff, 2px 0 #fff; }
+        }
+
+        /* ── Login card ── */
+        .login-card {
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border-primary);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow:
+                0 0 30px rgba(0,0,0,0.8),
+                0 0 60px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        .login-card-header {
+            background: var(--color-bg-secondary);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--color-border-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .login-card-header-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-text-muted);
+            opacity: 0.5;
+        }
+        .login-card-header-dot.active {
+            background: var(--color-success);
+            opacity: 1;
+            box-shadow: 0 0 6px var(--color-success);
+            animation: dotPulse 2s ease infinite;
+        }
+        @keyframes dotPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .login-card-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .login-card-body {
+            padding: 32px 28px;
+        }
+
+        /* ── Form elements ── */
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #fff;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #080808;
+            border: 1px solid var(--color-border-primary);
+            border-radius: 4px;
+            color: var(--color-text-primary);
+            font-family: var(--font-primary);
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            outline: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input::placeholder {
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        .form-input:focus {
+            border-color: #fff;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+        }
+        .form-input.error {
+            border-color: var(--color-critical);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 8px rgba(255,59,59,0.1);
+        }
+
+        /* ── Password field with toggle ── */
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper .form-input {
+            padding-right: 48px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+        .password-toggle:hover {
+            color: var(--color-text-primary);
+        }
+
+        /* ── Submit button ── */
+        .login-btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: var(--color-text-primary);
+            color: var(--color-black);
+            border: 1px solid var(--color-text-primary);
+            border-radius: 4px;
+            font-family: var(--font-primary);
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .login-btn:hover {
+            background: var(--color-black);
+            color: var(--color-text-primary);
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+        }
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+        .login-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading state */
+        .login-btn.loading {
+            color: transparent;
+            pointer-events: none;
+        }
+        .login-btn.loading::after {
+            content: "";
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 18px; height: 18px;
+            margin: -9px 0 0 -9px;
+            border: 2px solid transparent;
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: btnSpin 0.6s linear infinite;
+        }
+        .login-btn:hover.loading::after {
+            border-top-color: #fff;
+        }
+        @keyframes btnSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Error message ── */
+        .login-error {
+            display: none;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #0a0000;
+            border: 1px solid rgba(255,59,59,0.3);
+            border-left: 3px solid var(--color-critical);
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--color-critical);
+            letter-spacing: 0.5px;
+        }
+        .login-error.visible {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: errorSlide 0.3s ease;
+        }
+        @keyframes errorSlide {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-error-icon { font-size: 16px; flex-shrink: 0; }
+
+        /* ── Rate limit warning ── */
+        .rate-limit-bar {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 16px;
+            background: #0d0800;
+            border: 1px solid rgba(255,152,0,0.3);
+            border-left: 3px solid #ff9800;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #ff9800;
+            letter-spacing: 0.5px;
+        }
+        .rate-limit-bar.visible {
+            display: block;
+            animation: errorSlide 0.3s ease;
+        }
+
+        /* ── Footer ── */
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .login-footer-text {
+            font-size: 14px;
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .security-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .sec-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 14px;
+            color: var(--color-text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sec-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--color-success);
+            opacity: 0.6;
+        }
+
+        /* ── Corner decorations ── */
+        .corner-decor {
+            position: fixed;
+            font-size: 12px;
+            color: #1a1a1a;
+            font-family: var(--font-primary);
+            letter-spacing: 1px;
+            z-index: 5;
+        }
+        .corner-decor.top-left { top: 20px; left: 20px; }
+        .corner-decor.top-right { top: 20px; right: 20px; }
+        .corner-decor.bottom-left { bottom: 20px; left: 20px; }
+        .corner-decor.bottom-right { bottom: 20px; right: 20px; }
+
+        /* Keyboard shortcut hint */
+        .key-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #222;
+            letter-spacing: 1px;
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background effects -->
+    <div class="bg-grid"></div>
+    <div class="scanlines"></div>
+
+    <!-- Corner decorations -->
+    <div class="corner-decor top-left">SYS://AUTH-GATEWAY</div>
+    <div class="corner-decor top-right" id="clockDisplay">--:--:--</div>
+    <div class="corner-decor bottom-left">SECURE-CHANNEL-01</div>
+    <div class="corner-decor bottom-right">v2.0.1-HARDENED</div>
+    <div class="key-hint">PRESS ENTER TO AUTHENTICATE</div>
+
+    <!-- Login form -->
+    <div class="login-container">
+        <div class="login-brand">
+            <div class="login-logo">WATCH_LOGS</div>
+            <div class="login-subtitle">Security Information & Event Management</div>
+        </div>
+
+        <div class="login-card">
+            <div class="login-card-header">
+                <div class="login-card-header-dot active"></div>
+                <div class="login-card-header-dot"></div>
+                <div class="login-card-header-dot"></div>
+                <span class="login-card-title">Authentication Required</span>
+            </div>
+
+            <div class="login-card-body">
+                <form id="loginForm" autocomplete="off" novalidate>
+                    <div class="form-group">
+                        <label class="form-label" for="loginUsername">Username</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="loginUsername"
+                            name="username"
+                            placeholder="enter username"
+                            maxlength="64"
+                            autocomplete="username"
+                            spellcheck="false"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input
+                                type="password"
+                                class="form-input"
+                                id="loginPassword"
+                                name="password"
+                                placeholder="enter password"
+                                maxlength="128"
+                                autocomplete="current-password"
+                                required
+                            />
+                            <button type="button" class="password-toggle" id="togglePassword" tabindex="-1" aria-label="Toggle password visibility">
+                                ◉
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        Authenticate
+                    </button>
+
+                    <div class="login-error" id="loginError" role="alert">
+                        <span class="login-error-icon">⚠</span>
+                        <span id="loginErrorMsg">Invalid credentials</span>
+                    </div>
+
+                    <div class="rate-limit-bar" id="rateLimitBar" role="alert">
+                        ⏳ Too many attempts. Please wait before trying again.
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="login-footer">
+            <div class="login-footer-text">Authorized personnel only</div>
+            <div class="security-indicators">
+                <span class="sec-indicator"><span class="sec-dot"></span> Encrypted</span>
+                <span class="sec-indicator"><span class="sec-dot"></span> Rate Limited</span>
+                <span class="sec-indicator"><span class="sec-dot"></span> Monitored</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===============================================
+        // LOGIN PAGE — SECURE CLIENT-SIDE LOGIC
+        // ===============================================
+
+        const API_BASE = "http://localhost:5000";
+
+        // ── Check if already authenticated ──
+        (function checkExistingSession() {
+            const token = sessionStorage.getItem("wl_token");
+            if (token) {
+                // Verify the token is still valid
+                fetch(`${API_BASE}/api/auth/verify`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                })
+                .then(res => {
+                    if (res.ok) window.location.href = "ui.html";
+                    else sessionStorage.removeItem("wl_token");
+                })
+                .catch(() => {
+                    sessionStorage.removeItem("wl_token");
+                });
+            }
+        })();
+
+        // ── DOM refs ──
+        const form = document.getElementById("loginForm");
+        const usernameInput = document.getElementById("loginUsername");
+        const passwordInput = document.getElementById("loginPassword");
+        const loginBtn = document.getElementById("loginBtn");
+        const errorDiv = document.getElementById("loginError");
+        const errorMsg = document.getElementById("loginErrorMsg");
+        const rateLimitBar = document.getElementById("rateLimitBar");
+        const toggleBtn = document.getElementById("togglePassword");
+        const clockDisplay = document.getElementById("clockDisplay");
+
+        // ── Live clock ──
+        setInterval(() => {
+            const now = new Date();
+            clockDisplay.textContent = now.toLocaleTimeString("en-US", { hour12: false });
+        }, 1000);
+
+        // ── Password visibility toggle ──
+        toggleBtn.addEventListener("click", () => {
+            const isPassword = passwordInput.type === "password";
+            passwordInput.type = isPassword ? "text" : "password";
+            toggleBtn.textContent = isPassword ? "◎" : "◉";
+        });
+
+        // ── Client-side rate limiting (defense in depth, server also enforces) ──
+        let clientAttempts = 0;
+        const MAX_CLIENT_ATTEMPTS = 8;
+        let clientLockoutUntil = 0;
+
+        // ── Input sanitization ──
+        function sanitizeInput(str) {
+            // Strip HTML tags, limit length, trim
+            return str.replace(/<[^>]*>/g, "").trim().substring(0, 128);
+        }
+
+        // ── Show/hide error ──
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorDiv.classList.add("visible");
+            usernameInput.classList.add("error");
+            passwordInput.classList.add("error");
+        }
+
+        function hideError() {
+            errorDiv.classList.remove("visible");
+            usernameInput.classList.remove("error");
+            passwordInput.classList.remove("error");
+        }
+
+        // ── Form submission ──
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideError();
+            rateLimitBar.classList.remove("visible");
+
+            // Client-side lockout check
+            if (Date.now() < clientLockoutUntil) {
+                const secsLeft = Math.ceil((clientLockoutUntil - Date.now()) / 1000);
+                rateLimitBar.textContent = `⏳ Locked out. Try again in ${secsLeft}s.`;
+                rateLimitBar.classList.add("visible");
+                return;
+            }
+
+            const username = sanitizeInput(usernameInput.value);
+            const password = passwordInput.value; // Don't sanitize passwords (may contain special chars)
+
+            // Basic client validation
+            if (!username || !password) {
+                showError("Both fields are required");
+                return;
+            }
+
+            if (username.length < 2 || username.length > 64) {
+                showError("Invalid username format");
+                return;
+            }
+
+            // Set loading state
+            loginBtn.classList.add("loading");
+            loginBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.token) {
+                    // Success — store token and redirect
+                    sessionStorage.setItem("wl_token", data.token);
+                    sessionStorage.setItem("wl_user", data.username);
+
+                    // Brief success flash before redirect
+                    loginBtn.textContent = "✓ AUTHENTICATED";
+                    loginBtn.style.background = "#4caf50";
+                    loginBtn.style.borderColor = "#4caf50";
+                    loginBtn.classList.remove("loading");
+
+                    setTimeout(() => {
+                        window.location.href = "ui.html";
+                    }, 600);
+
+                } else {
+                    // Failed
+                    clientAttempts++;
+
+                    if (res.status === 429) {
+                        // Rate limited by server
+                        rateLimitBar.textContent = `⏳ ${data.message || "Too many attempts. Please wait."}`;
+                        rateLimitBar.classList.add("visible");
+                    } else {
+                        showError(data.message || "Authentication failed");
+                    }
+
+                    // Client-side progressive lockout
+                    if (clientAttempts >= MAX_CLIENT_ATTEMPTS) {
+                        const lockoutMs = Math.min(60000, clientAttempts * 5000);
+                        clientLockoutUntil = Date.now() + lockoutMs;
+                        rateLimitBar.textContent = `⏳ Too many failed attempts. Locked for ${lockoutMs / 1000}s.`;
+                        rateLimitBar.classList.add("visible");
+                    }
+
+                    loginBtn.classList.remove("loading");
+                    loginBtn.disabled = false;
+                    passwordInput.value = "";
+                    passwordInput.focus();
+                }
+
+            } catch (err) {
+                showError("Connection failed — is the backend running?");
+                loginBtn.classList.remove("loading");
+                loginBtn.disabled = false;
+            }
+        });
+
+        // ── Clear errors on input ──
+        usernameInput.addEventListener("input", hideError);
+        passwordInput.addEventListener("input", hideError);
+
+        // ── Focus username on load ──
+        usernameInput.focus();
+
+        // ── Prevent form resubmission on back button ──
+        if (window.performance && window.performance.navigation.type === 2) {
+            sessionStorage.removeItem("wl_token");
+        }
+    </script>
+</body>
+</html>

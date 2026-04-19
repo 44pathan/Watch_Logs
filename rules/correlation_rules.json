@@ -1,0 +1,197 @@
+[
+  {
+    "id": "BRUTE_FORCE_SUCCESS",
+    "name": "Brute Force → Successful Login",
+    "description": "Multiple failed SSH password attempts followed by a successful login on the same host — high-confidence indicator of a successful brute force attack.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 600,
+    "sequence": [
+      { "pattern": "Failed password",                       "min_count": 3 },
+      { "pattern": "Accepted password|Accepted publickey",  "min_count": 1 }
+    ],
+    "severity": "critical",
+    "mitre_tactic": "Credential Access",
+    "mitre_technique": "T1110.001",
+    "mitre_technique_name": "Brute Force: Password Guessing"
+  },
+  {
+    "id": "ENUM_THEN_SUCCESS",
+    "name": "User Enumeration → Successful Login",
+    "description": "SSH invalid-user attempts (user enumeration) followed by a successful login on the same host — indicates attacker found a valid username and gained access.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 600,
+    "sequence": [
+      { "pattern": "Invalid user",                          "min_count": 2 },
+      { "pattern": "Accepted password|Accepted publickey",  "min_count": 1 }
+    ],
+    "severity": "critical",
+    "mitre_tactic": "Initial Access",
+    "mitre_technique": "T1078",
+    "mitre_technique_name": "Valid Accounts"
+  },
+  {
+    "id": "SUDO_ABUSE_ROOT_SESSION",
+    "name": "Sudo Abuse → Root Session Opened",
+    "description": "Repeated sudo commands followed by a root session being opened on the same host — indicates a privilege escalation chain.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 300,
+    "sequence": [
+      { "pattern": "sudo",                            "min_count": 2 },
+      { "pattern": "session opened for user root",    "min_count": 1 }
+    ],
+    "severity": "high",
+    "mitre_tactic": "Privilege Escalation",
+    "mitre_technique": "T1548.003",
+    "mitre_technique_name": "Abuse Elevation Control Mechanism: Sudo and Sudo Caching"
+  },
+  {
+    "id": "RECON_THEN_AUTH_FAIL",
+    "name": "Port Scan → Authentication Failures",
+    "description": "A high volume of connection attempts followed by authentication failures on the same host — suggests automated reconnaissance leading to a credential attack.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 300,
+    "sequence": [
+      { "pattern": "Connection closed|connection reset|refused connect", "min_count": 10 },
+      { "pattern": "Failed password|authentication failure",             "min_count": 3  }
+    ],
+    "severity": "high",
+    "mitre_tactic": "Discovery",
+    "mitre_technique": "T1046",
+    "mitre_technique_name": "Network Service Discovery"
+  },
+
+  {
+    "id": "FTP_BRUTE_FORCE_SUCCESS",
+    "name": "FTP Brute Force → Successful FTP Login",
+    "description": "Multiple failed FTP login attempts followed by a successful FTP session — attacker successfully brute-forced FTP credentials.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 600,
+    "sequence": [
+      { "pattern": "FAIL LOGIN|Login incorrect|530 Login",     "min_count": 3 },
+      { "pattern": "FTP session opened|230 Login successful",  "min_count": 1 }
+    ],
+    "severity": "critical",
+    "mitre_tactic": "Credential Access",
+    "mitre_technique": "T1110.001",
+    "mitre_technique_name": "Brute Force: Password Guessing"
+  },
+  {
+    "id": "MULTI_SERVICE_BRUTE_FORCE",
+    "name": "Multi-Service Authentication Attack",
+    "description": "Authentication failures detected across multiple services (SSH, FTP, Telnet, SMB) on the same host — indicates automated credential stuffing across services.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 300,
+    "sequence": [
+      { "pattern": "Failed password|FAIL LOGIN|LOGIN FAILURE|NT_STATUS_LOGON_FAILURE|Access denied for user", "min_count": 10 },
+      { "pattern": "Accepted password|FTP session opened|LOGIN ON|230 Login successful",                      "min_count": 1  }
+    ],
+    "severity": "critical",
+    "mitre_tactic": "Credential Access",
+    "mitre_technique": "T1110.004",
+    "mitre_technique_name": "Brute Force: Credential Stuffing"
+  },
+  {
+    "id": "WEB_ATTACK_PRIVESC",
+    "name": "Web Attack → Privilege Escalation",
+    "description": "Web application attack attempts (SQL injection, traversal, 403 bypass) followed by privilege escalation activity — suggests a successful web exploit leading to system compromise.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 600,
+    "sequence": [
+      { "pattern": "401 Unauthorized|403 Forbidden|SQL injection|directory traversal",  "min_count": 3 },
+      { "pattern": "sudo|session opened for user root",                                  "min_count": 1 }
+    ],
+    "severity": "critical",
+    "mitre_tactic": "Privilege Escalation",
+    "mitre_technique": "T1068",
+    "mitre_technique_name": "Exploitation for Privilege Escalation"
+  },
+  {
+    "id": "DNS_RECON_THEN_ATTACK",
+    "name": "DNS Recon → Service Attack",
+    "description": "DNS zone transfer or enumeration followed by authentication attacks — indicates attacker performed reconnaissance before targeting specific services.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 600,
+    "sequence": [
+      { "pattern": "zone transfer|AXFR|query denied",                       "min_count": 1 },
+      { "pattern": "Failed password|FAIL LOGIN|authentication failure",      "min_count": 3 }
+    ],
+    "severity": "high",
+    "mitre_tactic": "Reconnaissance",
+    "mitre_technique": "T1590.002",
+    "mitre_technique_name": "Gather Victim Network Information: DNS"
+  },
+  {
+    "id": "SMTP_ABUSE_THEN_EXFIL",
+    "name": "SMTP Relay Abuse → Data Exfiltration",
+    "description": "Multiple SMTP relay attempts followed by successful mail delivery — may indicate spam relay abuse or data exfiltration via email.",
+    "enabled": true,
+    "field": "message",
+    "index": "siem-logs-*",
+    "group_by": "host.hostname",
+    "time_window_seconds": 600,
+    "sequence": [
+      { "pattern": "relay denied|reject:|authentication failed",   "min_count": 3 },
+      { "pattern": "sent|delivered|status=sent",                   "min_count": 1 }
+    ],
+    "severity": "high",
+    "mitre_tactic": "Exfiltration",
+    "mitre_technique": "T1048.002",
+    "mitre_technique_name": "Exfiltration Over Alternative Protocol"
+  },
+  {
+  "id": "recon_to_brute_force",
+  "name": "Recon Followed by Brute Force",
+  "description": "Port scan detected followed by SSH brute force from same host",
+  "severity": "critical",
+  "index": "siem-logs-*",
+  "group_by": "host.hostname",
+  "time_window_seconds": 300,
+  "mitre_tactic": "Reconnaissance → Credential Access",
+  "mitre_technique": "T1046",
+  "mitre_technique_name": "Network Service Discovery → Brute Force",
+  "sequence": [
+    { "pattern": "NMAP_NULL|NMAP_XMAS|NMAP_RST|NMAP_SYNFIN", "min_count": 10 },
+    { "pattern": "Failed password|invalid user|authentication failure", "min_count": 3 }
+  ]
+},
+{
+  "id": "recon_to_web_attack",
+  "name": "Recon Followed by Web Attack",
+  "description": "Port scan detected followed by web attack on same host",
+  "severity": "critical",
+  "index": "siem-logs-*",
+  "group_by": "host.hostname",
+  "time_window_seconds": 300,
+  "mitre_tactic": "Reconnaissance → Initial Access",
+  "mitre_technique": "T1046",
+  "mitre_technique_name": "Network Service Discovery → Exploit Public-Facing Application",
+  "sequence": [
+    { "pattern": "NMAP_NULL|NMAP_XMAS|NMAP_RST", "min_count": 10 },
+    { "pattern": "SQL injection|directory traversal|401|403", "min_count": 1 }
+  ]
+}
+]

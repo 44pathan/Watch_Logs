@@ -1,0 +1,240 @@
+##############################################################################
+# siem.conf — WATCH_LOGS Multi-Service Logstash Pipeline
+# Parses: SSH, FTP, Telnet, HTTP, SMTP, DNS, MySQL, SMB, SNMP
+##############################################################################
+
+input {
+  beats {
+    port => 5044
+  }
+}
+
+filter {
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SSH — Failed/Accepted password, Invalid user, Sessions
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  if [message] =~ "Failed password for invalid user" {
+    grok {
+      match => { "message" => "Failed password for invalid user %{USERNAME:ssh_user} from %{IP:src_ip} port %{NUMBER:src_port} %{WORD:ssh_proto}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "critical" "event_type" => "ssh_brute_force" "service" => "ssh" } }
+  }
+
+  else if [message] =~ "Failed password" {
+    grok {
+      match => { "message" => "Failed password for %{USERNAME:ssh_user} from %{IP:src_ip} port %{NUMBER:src_port} %{WORD:ssh_proto}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "critical" "event_type" => "ssh_failed_login" "service" => "ssh" } }
+  }
+
+  else if [message] =~ "Accepted password" {
+    grok {
+      match => { "message" => "Accepted password for %{USERNAME:ssh_user} from %{IP:src_ip} port %{NUMBER:src_port} %{WORD:ssh_proto}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "medium" "event_type" => "ssh_login_success" "service" => "ssh" } }
+  }
+
+  else if [message] =~ /(?i)invalid user/ {
+    grok {
+      match => { "message" => "Invalid user %{USERNAME:ssh_user} from %{IP:src_ip} port %{NUMBER:src_port}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "high" "event_type" => "ssh_invalid_user" "service" => "ssh" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SUDO / SU — Privilege escalation
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /\w+ : TTY=/ {
+    grok {
+      match => { "message" => "%{USERNAME:sudo_user} : TTY=%{DATA:tty} ; PWD=%{DATA:pwd} ; USER=%{USERNAME:sudo_target_user} ; COMMAND=%{GREEDYDATA:sudo_command}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "high" "event_type" => "sudo_command" "service" => "sudo" } }
+  }
+
+  else if [message] =~ "session opened for user root" {
+    mutate { add_field => { "severity" => "high" "event_type" => "root_session" "service" => "auth" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FTP — vsftpd / proftpd login events
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)FAIL LOGIN/ {
+    grok {
+      match => { "message" => "%{GREEDYDATA}: FAIL LOGIN[:]? %{GREEDYDATA:ftp_detail}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "critical" "event_type" => "ftp_failed_login" "service" => "ftp" } }
+  }
+
+  else if [message] =~ /(?i)Login incorrect|530 Login/ {
+    mutate { add_field => { "severity" => "critical" "event_type" => "ftp_failed_login" "service" => "ftp" } }
+  }
+
+  else if [message] =~ /(?i)FTP session opened|230 Login successful/ {
+    grok {
+      match => { "message" => "%{GREEDYDATA:ftp_msg}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "medium" "event_type" => "ftp_login_success" "service" => "ftp" } }
+  }
+
+  else if [message] =~ /(?i)ANONYMOUS FTP LOGIN|anonymous login/ {
+    mutate { add_field => { "severity" => "high" "event_type" => "ftp_anonymous_login" "service" => "ftp" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TELNET — Login success/failure
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)LOGIN FAILURE/ {
+    grok {
+      match => { "message" => "LOGIN FAILURE[:]? %{GREEDYDATA:telnet_detail}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "critical" "event_type" => "telnet_failed_login" "service" => "telnet" } }
+  }
+
+  else if [message] =~ /LOGIN ON/ {
+    grok {
+      match => { "message" => "LOGIN ON %{DATA:tty} BY %{USERNAME:telnet_user}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "high" "event_type" => "telnet_login_success" "service" => "telnet" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HTTP — Apache / Nginx access and error logs
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)SQL injection|UNION SELECT|<script|directory traversal|\.\.\// {
+    mutate { add_field => { "severity" => "critical" "event_type" => "http_web_attack" "service" => "http" } }
+  }
+
+  else if [message] =~ /401 Unauthorized|401/ and [fields][service] == "apache2" {
+    mutate { add_field => { "severity" => "critical" "event_type" => "http_401" "service" => "http" } }
+  }
+
+  else if [message] =~ /403 Forbidden|403/ and [fields][service] == "apache2" {
+    mutate { add_field => { "severity" => "high" "event_type" => "http_403" "service" => "http" } }
+  }
+
+  else if [message] =~ /(?i)\[error\]|\[crit\]|\[alert\]/ and ([fields][service] == "apache2" or [fields][service] == "nginx") {
+    mutate { add_field => { "severity" => "high" "event_type" => "http_error" "service" => "http" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SMTP — Postfix / Sendmail relay and auth events
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)relay denied|relay access denied/ {
+    mutate { add_field => { "severity" => "high" "event_type" => "smtp_relay_denied" "service" => "smtp" } }
+  }
+
+  else if [message] =~ /(?i)reject:|NOQUEUE: reject/ {
+    grok {
+      match => { "message" => "%{GREEDYDATA:smtp_reject_detail}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "high" "event_type" => "smtp_rejected" "service" => "smtp" } }
+  }
+
+  else if [message] =~ /(?i)authentication failed/ and [message] =~ /(?i)smtp|postfix|sasl/ {
+    mutate { add_field => { "severity" => "critical" "event_type" => "smtp_auth_failure" "service" => "smtp" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # DNS — named / dnsmasq zone transfer, query denied
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)zone transfer|AXFR/ {
+    mutate { add_field => { "severity" => "high" "event_type" => "dns_zone_transfer" "service" => "dns" } }
+  }
+
+  else if [message] =~ /(?i)query.*denied|query \(cache\) denied/ {
+    mutate { add_field => { "severity" => "medium" "event_type" => "dns_query_denied" "service" => "dns" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MYSQL / MARIADB — Auth failures
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)Access denied for user/ {
+    grok {
+      match => { "message" => "Access denied for user '%{USERNAME:db_user}'@'%{IP:src_ip}'" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "critical" "event_type" => "mysql_auth_failure" "service" => "mysql" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SMB / SAMBA — Logon failures
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)NT_STATUS_LOGON_FAILURE/ {
+    mutate { add_field => { "severity" => "critical" "event_type" => "smb_logon_failure" "service" => "smb" } }
+  }
+
+  else if [message] =~ /(?i)authentication failure/ and [message] =~ /(?i)smbd|samba/ {
+    mutate { add_field => { "severity" => "critical" "event_type" => "smb_auth_failure" "service" => "smb" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SNMP — Auth failures, bad community strings
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ /(?i)authenticationFailure/ {
+    mutate { add_field => { "severity" => "high" "event_type" => "snmp_auth_failure" "service" => "snmp" } }
+  }
+
+  else if [message] =~ /(?i)bad community string/ {
+    mutate { add_field => { "severity" => "high" "event_type" => "snmp_bad_community" "service" => "snmp" } }
+  }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # GENERIC — Session open/close and catch-all
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  else if [message] =~ "session opened" {
+    grok {
+      match => { "message" => "session opened for user %{USERNAME:session_user}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "medium" "event_type" => "session_opened" "service" => "auth" } }
+  }
+
+  else if [message] =~ "session closed" {
+    grok {
+      match => { "message" => "session closed for user %{USERNAME:session_user}" }
+      tag_on_failure => []
+    }
+    mutate { add_field => { "severity" => "low" "event_type" => "session_closed" "service" => "auth" } }
+  }
+
+  else if [message] =~ "authentication failure" {
+    mutate { add_field => { "severity" => "critical" "event_type" => "auth_failure" "service" => "auth" } }
+  }
+
+  else {
+    mutate { add_field => { "severity" => "low" "event_type" => "system" "service" => "system" } }
+  }
+
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://localhost:9200"]
+    user => "elastic"
+    password => "Watchlogs@69"
+    ssl_verification_mode => "none"
+    index => "siem-logs-%{+YYYY.MM.dd}"
+  }
+}
