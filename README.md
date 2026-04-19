@@ -48,6 +48,24 @@
 
 ---
 
+## 📸 Screenshots
+
+> **Tip:** Take screenshots while running the dashboard locally and drop them in `docs/screenshots/`. They will render automatically here on GitHub.
+
+| Login Portal | Overview Dashboard |
+|---|---|
+| ![Login](docs/screenshots/login.png) | ![Overview](docs/screenshots/overview.png) |
+
+| Alerts Tab | Monitoring & Endpoint Risk |
+|---|---|
+| ![Alerts](docs/screenshots/alerts.png) | ![Monitoring](docs/screenshots/monitoring.png) |
+
+| Log Management | Threat Intelligence |
+|---|---|
+| ![Logs](docs/screenshots/log-management.png) | ![Threat Intel](docs/screenshots/threat-intel.png) |
+
+---
+
 ## 🏗️ System Architecture
 
 ```
