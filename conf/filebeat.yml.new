@@ -1,0 +1,154 @@
+###################### Filebeat Configuration — WATCH_LOGS SIEM #########################
+# Multi-service log collection: SSH, FTP, Telnet, HTTP, SMTP, DNS, MySQL, SMB, SNMP
+
+# ============================== Filebeat inputs ===============================
+
+filebeat.inputs:
+
+# ── 1. JOURNALD: Collects from systemd journal (SSH, Sudo, FTP, Telnet, SMB, SNMP, DNS) ──
+- type: journald
+  id: watchlogs-journald
+  seek: tail
+  include_matches:
+    # SSH & Auth
+    - "SYSLOG_IDENTIFIER=sshd"
+    - "SYSLOG_IDENTIFIER=sshd-session"
+    - "SYSLOG_IDENTIFIER=sudo"
+    - "SYSLOG_IDENTIFIER=su"
+    # FTP
+    - "SYSLOG_IDENTIFIER=vsftpd"
+    - "SYSLOG_IDENTIFIER=proftpd"
+    # Telnet
+    - "SYSLOG_IDENTIFIER=telnetd"
+    - "SYSLOG_IDENTIFIER=in.telnetd"
+    - "SYSLOG_IDENTIFIER=login"
+    # SMB / Samba
+    - "SYSLOG_IDENTIFIER=smbd"
+    - "SYSLOG_IDENTIFIER=nmbd"
+    # SNMP
+    - "SYSLOG_IDENTIFIER=snmpd"
+    # DNS
+    - "SYSLOG_IDENTIFIER=named"
+    - "SYSLOG_IDENTIFIER=dnsmasq"
+    # MySQL / MariaDB
+    - "SYSLOG_IDENTIFIER=mysqld"
+    - "SYSLOG_IDENTIFIER=mariadbd"
+    # General PAM auth (catches all PAM-based service auth events)
+    - "SYSLOG_IDENTIFIER=pam_unix"
+  enabled: true
+
+# ── 2. APACHE2: Access and error logs from files ──
+- type: filestream
+  id: apache-access
+  enabled: true
+  paths:
+    - /var/log/apache2/access.log
+  fields:
+    service: apache2
+    log_type: access
+  fields_under_root: false
+
+- type: filestream
+  id: apache-error
+  enabled: true
+  paths:
+    - /var/log/apache2/error.log
+  fields:
+    service: apache2
+    log_type: error
+  fields_under_root: false
+
+# ── 3. NGINX: Access and error logs from files ──
+- type: filestream
+  id: nginx-access
+  enabled: true
+  paths:
+    - /var/log/nginx/access.log
+  fields:
+    service: nginx
+    log_type: access
+  fields_under_root: false
+
+- type: filestream
+  id: nginx-error
+  enabled: true
+  paths:
+    - /var/log/nginx/error.log
+  fields:
+    service: nginx
+    log_type: error
+  fields_under_root: false
+
+# ── 4. VSFTPD: FTP transfer and auth logs from files ──
+- type: filestream
+  id: vsftpd-log
+  enabled: true
+  paths:
+    - /var/log/vsftpd.log
+  fields:
+    service: vsftpd
+    log_type: ftp
+  fields_under_root: false
+
+# ── 5. MYSQL / MARIADB: Error log from files ──
+- type: filestream
+  id: mysql-error
+  enabled: true
+  paths:
+    - /var/log/mysql/error.log
+    - /var/log/mysql/*.log
+  fields:
+    service: mysql
+    log_type: database
+  fields_under_root: false
+
+# ── 6. SAMBA: SMB logs from files ──
+- type: filestream
+  id: samba-log
+  enabled: true
+  paths:
+    - /var/log/samba/log.*
+  fields:
+    service: samba
+    log_type: smb
+  fields_under_root: false
+
+# ── 7. AUTH LOG: Catch-all for PAM, login, telnet, and other auth events ──
+- type: filestream
+  id: auth-log
+  enabled: true
+  paths:
+    - /var/log/auth.log
+  fields:
+    service: system
+    log_type: auth
+  fields_under_root: false
+
+
+# ============================== Filebeat modules ==============================
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+
+# ======================= Elasticsearch template setting =======================
+
+setup.template.settings:
+  index.number_of_shards: 1
+
+
+# ================================== Outputs ===================================
+
+# ------------------------------ Logstash Output -------------------------------
+output.logstash:
+  hosts: ["localhost:5044"]
+
+
+# ================================= Processors =================================
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~

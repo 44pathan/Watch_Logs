@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WATCH_LOGS Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-title">WATCH_LOGS</div>
+
+            <ul class="menu" role="menu">
+                <li class="active" data-page="monitoring" role="menuitem" tabindex="0">
+                    <span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M12 2c-4 0-8 .5-8 4v9.5c0 .95.38 1.81 1 2.44V20c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-2.06c.62-.63 1-1.49 1-2.44V6c0-3.5-3.58-4-8-4z">
+                            </path>
+                            <path d="M12 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"></path>
+                            <circle cx="12" cy="10" r="2"></circle>
+                        </svg>
+                    </span> Monitoring
+                </li>
+                <li data-page="logs" role="menuitem" tabindex="0">
+                    <span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                            <line x1="7" y1="8" x2="17" y2="8"></line>
+                            <line x1="7" y1="12" x2="17" y2="12"></line>
+                            <line x1="7" y1="16" x2="17" y2="16"></line>
+                        </svg>
+                    </span> Log Management
+                </li>
+                <li data-page="cases" role="menuitem" tabindex="0">
+                    <span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M4 7h16l-1 12H5L4 7z"></path>
+                            <path d="M9 7V5h6v2"></path>
+                        </svg>
+                    </span> Case Management
+                </li>
+                <li data-page="endpoints" role="menuitem" tabindex="0">
+                    <span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+                            <path d="M8 20h8"></path>
+                        </svg>
+                    </span> Endpoint Security
+                </li>
+                <li data-page="threatintel" role="menuitem" tabindex="0">
+                    <span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <line x1="12" y1="2" x2="12" y2="5"></line>
+                            <line x1="12" y1="19" x2="12" y2="22"></line>
+                            <line x1="2" y1="12" x2="5" y2="12"></line>
+                            <line x1="19" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                    </span> Threat Intel
+                </li>
+                <li data-page="alerts" role="menuitem" tabindex="0">
+                    <span aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </span> Alerts
+                </li>
+            </ul>
+
+            <div class="sidebar-session" style="margin-top:auto;padding-top:20px;border-top:1px solid #2a2a2a;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:0 4px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2">
+                        <circle cx="12" cy="8" r="4"></circle>
+                        <path d="M4 20c0-4 4-7 8-7s8 3 8 7"></path>
+                    </svg>
+                    <span id="sidebarUsername" style="font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:0.5px;"></span>
+                </div>
+                <button onclick="logout()" id="logoutBtn" style="
+                    width:100%;
+                    padding:10px;
+                    background:transparent;
+                    border:1px solid #2a2a2a;
+                    color:#fff;
+                    font-family:'Space Mono',monospace;
+                    font-size:13px;
+                    text-transform:uppercase;
+                    letter-spacing:1px;
+                    cursor:pointer;
+                    border-radius:4px;
+                    transition:all 0.2s;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    gap:6px;
+                ">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <main class="main">
+
+            <div class="monitoring-header">
+                <div class="segmented-control" role="tablist">
+                    <button class="tab active" role="tab" data-tab="main">Main Channel</button>
+                    <button class="tab" role="tab" data-tab="investigation">Investigation</button>
+                    <button class="tab" role="tab" data-tab="rules">Rule Engine</button>
+                    <button class="tab" role="tab" data-tab="correlated">Correlated</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="severity-header">
+                                    <button class="filter-btn">⏷</button>
+                                    SEVERITY
+                                    <div class="filter-menu">
+                                        <div data-filter="all">All</div>
+                                        <div data-filter="critical">Critical</div>
+                                        <div data-filter="high">High</div>
+                                        <div data-filter="medium">Medium</div>
+                                    </div>
+                                </div>
+                            </th>
+
+                            <th>DATE</th>
+                            <th>RULE NAME</th>
+                            <th>HOSTNAME</th>
+                            <th>EVENTID</th>
+                            <th>TYPE</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-1">
+                            <td class="critical"><span class="arrow">▶</span> Critical</td>
+                            <td>2025-11-15 17:50:01</td>
+                            <td>Lumma Stealer DLL Side-Loading</td>
+                            <td>CORP-DC-01</td>
+                            <td>401</td>
+                            <td>Malware</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 401</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:50:01</p>
+                                    <p><strong>Rule:</strong> Lumma Stealer DLL Side-Loading</p>
+                                    <p><strong>Type:</strong> Malware</p>
+                                    <p><strong>Source:</strong> 192.168.1.5</p>
+                                    <p><strong>Destination:</strong> CORP-DC-01</p>
+                                    <p><strong>Action:</strong> Blocked</p>
+                                    <p><strong>Reason:</strong> Signature Match</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-2">
+                            <td class="high"><span class="arrow">▶</span> High</td>
+                            <td>2025-11-15 17:49:55</td>
+                            <td>Credential Dumping (LSASS / Mimikatz)</td>
+                            <td>192.168.1.100</td>
+                            <td>312</td>
+                            <td>Credential Access</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 312</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:49:55</p>
+                                    <p><strong>Rule:</strong> Credential Dumping (LSASS / Mimikatz)</p>
+                                    <p><strong>Type:</strong> Credential Access</p>
+                                    <p><strong>Source:</strong> 10.0.0.4</p>
+                                    <p><strong>Destination:</strong> 192.168.1.100</p>
+                                    <p><strong>Action:</strong> Quarantined</p>
+                                    <p><strong>Reason:</strong> Behavioral Anomaly</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-3">
+                            <td class="critical"><span class="arrow">▶</span> Critical</td>
+                            <td>2025-11-15 17:49:50</td>
+                            <td>Suspicious PowerShell Execution</td>
+                            <td>finance-server</td>
+                            <td>287</td>
+                            <td>Execution</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 287</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:49:50</p>
+                                    <p><strong>Rule:</strong> Suspicious PowerShell Execution</p>
+                                    <p><strong>Type:</strong> Execution</p>
+                                    <p><strong>Source:</strong> 45.33.22.11</p>
+                                    <p><strong>Destination:</strong> finance-server</p>
+                                    <p><strong>Action:</strong> Allowed</p>
+                                    <p><strong>Reason:</strong> Heuristic Analysis</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-4">
+                            <td class="medium"><span class="arrow">▶</span> Medium</td>
+                            <td>2025-11-15 17:49:42</td>
+                            <td>Web Exploit / Auth Bypass</td>
+                            <td>172.16.0.5</td>
+                            <td>445</td>
+                            <td>Initial Access</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 445</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:49:42</p>
+                                    <p><strong>Rule:</strong> Web Exploit / Auth Bypass</p>
+                                    <p><strong>Type:</strong> Initial Access</p>
+                                    <p><strong>Source:</strong> suspicious-domain.com</p>
+                                    <p><strong>Destination:</strong> 172.16.0.5</p>
+                                    <p><strong>Action:</strong> Blocked</p>
+                                    <p><strong>Reason:</strong> Threat Intelligence Feed</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-5">
+                            <td class="high"><span class="arrow">▶</span> High</td>
+                            <td>2025-11-15 17:49:30</td>
+                            <td>Brute Force Attempt (RDP)</td>
+                            <td>hr-laptop</td>
+                            <td>203</td>
+                            <td>Credential Access</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 203</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:49:30</p>
+                                    <p><strong>Rule:</strong> Brute Force Attempt (RDP)</p>
+                                    <p><strong>Type:</strong> Credential Access</p>
+                                    <p><strong>Source:</strong> phishing-link.net</p>
+                                    <p><strong>Destination:</strong> hr-laptop</p>
+                                    <p><strong>Action:</strong> Blocked</p>
+                                    <p><strong>Reason:</strong> Policy Violation</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-6">
+                            <td class="critical"><span class="arrow">▶</span> Critical</td>
+                            <td>2025-11-15 17:48:12</td>
+                            <td>C2 Communication Callback</td>
+                            <td>database-prod</td>
+                            <td>356</td>
+                            <td>Command and Control</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 356</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:48:12</p>
+                                    <p><strong>Rule:</strong> C2 Communication Callback</p>
+                                    <p><strong>Type:</strong> Command and Control</p>
+                                    <p><strong>Source:</strong> 45.33.22.11</p>
+                                    <p><strong>Destination:</strong> database-prod</p>
+                                    <p><strong>Action:</strong> Quarantined</p>
+                                    <p><strong>Reason:</strong> Unusual Traffic Volume</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-7">
+                            <td class="medium"><span class="arrow">▶</span> Medium</td>
+                            <td>2025-11-15 17:47:59</td>
+                            <td>Privilege Escalation (UAC Bypass)</td>
+                            <td>CORP-DC-01</td>
+                            <td>478</td>
+                            <td>Privilege Escalation</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 478</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:47:59</p>
+                                    <p><strong>Rule:</strong> Privilege Escalation (UAC Bypass)</p>
+                                    <p><strong>Type:</strong> Privilege Escalation</p>
+                                    <p><strong>Source:</strong> admin@company.com</p>
+                                    <p><strong>Destination:</strong> CORP-DC-01</p>
+                                    <p><strong>Action:</strong> Allowed</p>
+                                    <p><strong>Reason:</strong> Behavioral Anomaly</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-8">
+                            <td class="high"><span class="arrow">▶</span> High</td>
+                            <td>2025-11-15 17:47:33</td>
+                            <td>SQL Injection Attack</td>
+                            <td>finance-server</td>
+                            <td>234</td>
+                            <td>Initial Access</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 234</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:47:33</p>
+                                    <p><strong>Rule:</strong> SQL Injection Attack</p>
+                                    <p><strong>Type:</strong> Initial Access</p>
+                                    <p><strong>Source:</strong> unknown-host</p>
+                                    <p><strong>Destination:</strong> finance-server</p>
+                                    <p><strong>Action:</strong> Blocked</p>
+                                    <p><strong>Reason:</strong> Signature Match</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-9">
+                            <td class="critical"><span class="arrow">▶</span> Critical</td>
+                            <td>2025-11-15 17:46:58</td>
+                            <td>Ransomware Pre-Execution Activity</td>
+                            <td>192.168.1.100</td>
+                            <td>389</td>
+                            <td>Malware</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 389</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:46:58</p>
+                                    <p><strong>Rule:</strong> Ransomware Pre-Execution Activity</p>
+                                    <p><strong>Type:</strong> Malware</p>
+                                    <p><strong>Source:</strong> 192.168.1.5</p>
+                                    <p><strong>Destination:</strong> 192.168.1.100</p>
+                                    <p><strong>Action:</strong> Quarantined</p>
+                                    <p><strong>Reason:</strong> Signature Match</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr class="log-row" data-channel="main" data-alert-id="alert-10">
+                            <td class="medium"><span class="arrow">▶</span> Medium</td>
+                            <td>2025-11-15 17:46:20</td>
+                            <td>Impossible Travel Login</td>
+                            <td>CORP-DC-01</td>
+                            <td>500</td>
+                            <td>Defense Evasion</td>
+                            <td class="action"><button class="btn-soc action-add" title="Add to Investigation">+</button></td>
+                        </tr>
+                        <tr class="log-details" style="display: none;">
+                            <td colspan="7">
+                                <div class="details-box">
+                                    <p><strong>EventID:</strong> 500</p>
+                                    <p><strong>Event Time:</strong> 2025-11-15 17:46:20</p>
+                                    <p><strong>Rule:</strong> Impossible Travel Login</p>
+                                    <p><strong>Type:</strong> Defense Evasion</p>
+                                    <p><strong>Source:</strong> admin@company.com</p>
+                                    <p><strong>Destination:</strong> CORP-DC-01</p>
+                                    <p><strong>Action:</strong> Allowed</p>
+                                    <p><strong>Reason:</strong> Threat Intelligence Feed</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </main>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
